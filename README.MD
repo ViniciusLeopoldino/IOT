@@ -100,8 +100,8 @@ Siga os passos abaixo para configurar e rodar o ambiente localmente.
 
 ### 2. Clonar o Repositório
 ```bash
-git clone [https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git](https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git)
-cd SEU_REPOSITORIO
+git clone https://github.com/ViniciusLeopoldino/IOT.git
+cd IOT
 ```
 
 ### 3. Instalar as Dependências
