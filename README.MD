@@ -165,8 +165,7 @@ Use um gerador de QR Code online (como o [QR Code Generator](https://www.qr-code
 
 ## 🎥 Vídeo de Demonstração
 
-Assista ao protótipo em ação no YouTube:  
-**[Link para o seu vídeo aqui]**
+Assista ao protótipo no YouTube:  https://www.youtube.com/watch?v=ZxqEnVOUHW
 
 ---
 
