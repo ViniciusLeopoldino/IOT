@@ -1,0 +1,8 @@
+opencv-python
+pyzbar
+numpy
+ultralytics
+requests
+Flask
+
+
