@@ -88,8 +88,8 @@ Usuário -> main.py (Menu no Terminal)
 ### Passo 1: Configuração do Ambiente
 ```bash
 # 1. Clone o repositório
-git clone <URL_DO_SEU_REPOSITORIO>
-cd <NOME_DA_PASTA>
+git clone https://github.com/ViniciusLeopoldino/IOT.git
+cd IOT
 
 # 2. Crie e ative um ambiente virtual
 python -m venv venv
