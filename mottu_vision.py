@@ -1,14 +1,12 @@
-
 import cv2
 from pyzbar.pyzbar import decode
 import numpy as np
 import json
 from ultralytics import YOLO
 import requests
-import time
 
-# Carregar o modelo YOLOv8 pré-treinado
-model = YOLO('yolov8n.pt')  # Você pode usar 'yolov8n.pt', 'yolov8s.pt', etc.
+# Carregar o modelo YOLOv8 pré-treinado (usaremos o 'n' que é mais leve)
+model = YOLO('yolov8n.pt')
 
 # URL do backend Flask
 BACKEND_URL = "http://127.0.0.1:5000/armazenar_moto"
@@ -19,74 +17,74 @@ def ler_qr_da_camera():
         print("Erro: Não foi possível abrir a câmera.")
         return
 
-    print("Aguardando detecção de motos e leitura de QR Code... Pressione 'q' para sair.")
+    print("Aguardando detecção de QR Code... Pressione 'q' para sair.")
+
+    # Variável para controlar o último QR Code lido e evitar duplicatas
+    last_sent_placa = None
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Realizar detecção de objetos com YOLO
-        results = model(frame, stream=True)
+        # Inverte o frame horizontalmente para efeito de espelho
+        frame = cv2.flip(frame, 1)
 
-        moto_detectada = False
-        for r in results:
-            boxes = r.boxes
-            for box in boxes:
-                cls = int(box.cls[0])
-                # Supondo que 'moto' ou 'motocicleta' seja uma das classes detectadas
-                # Você pode precisar ajustar o ID da classe dependendo do modelo YOLO
-                # Para YOLOv8, 'motorcycle' geralmente é a classe 3
-                if model.names[cls] == 'motorcycle':  # ou 'moto', 'motorbike'
-                    moto_detectada = True
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+        # Usamos pyzbar para decodificar todos os QR Codes no frame
+        barcodes = decode(frame)
+        
+        qr_code_found_this_frame = False
+        for barcode in barcodes:
+            qr_code_found_this_frame = True
+            qr_data = barcode.data.decode('utf-8')
 
-                    # Desenhar caixa de detecção do YOLO
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2) # Azul para YOLO
-                    cv2.putText(frame, 'Moto', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+            # Desenha o contorno do QR Code detectado
+            pontos = np.array([barcode.polygon], np.int32)
+            pontos = pontos.reshape((-1, 1, 2))
+            cv2.polylines(frame, [pontos], True, (0, 255, 0), 3) # Verde para QR Code
 
-                    # Definir ROI para busca de QR Code
-                    roi = frame[y1:y2, x1:x2]
+            try:
+                dados_moto = json.loads(qr_data)
+                placa_atual = dados_moto.get('placa')
 
-                    # Detectar e decodificar QR Codes dentro da ROI
-                    for barcode in decode(roi):
-                        pontos = np.array([barcode.polygon], np.int32)
-                        # Ajustar coordenadas dos pontos do QR para o frame original
-                        pontos[:, :, 0] += x1
-                        pontos[:, :, 1] += y1
-                        pontos = pontos.reshape((-1, 1, 2))
-                        cv2.polylines(frame, [pontos], True, (0, 255, 0), 3) # Verde para QR Code
+                # --- LÓGICA ANTI-DUPLICATAS ---
+                # Apenas processa se a placa for nova
+                if placa_atual and placa_atual != last_sent_placa:
+                    print(f"Novo QR Code detectado! Placa: {placa_atual}. Enviando para o backend...")
+                    
+                    try:
+                        response = requests.post(BACKEND_URL, json=dados_moto)
+                        if response.status_code == 200:
+                            print(f"✅ Sucesso! Dados enviados: {dados_moto}")
+                            # Atualiza a última placa enviada para não repetir
+                            last_sent_placa = placa_atual
+                        else:
+                            print(f"❌ Erro no backend: {response.status_code} - {response.text}")
+                            # Não atualiza a última placa, para tentar de novo
+                            last_sent_placa = None
 
-                        qr_data = barcode.data.decode('utf-8')
-                        try:
-                            dados_moto = json.loads(qr_data)
-                            texto_display = f"{dados_moto.get('placa', 'N/A')} - {dados_moto.get('modelo', 'N/A')}"
+                    except requests.exceptions.ConnectionError:
+                        print("❌ Erro de conexão. Verifique se o backend (backend.py) está rodando.")
+                        last_sent_placa = None
+                
+                # Feedback visual
+                if last_sent_placa == placa_atual:
+                    cv2.putText(frame, "MOTO JA ARMAZENADA!", (barcode.rect.left, barcode.rect.top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
+                else:
+                    cv2.putText(frame, "Lendo QR Code...", (barcode.rect.left, barcode.rect.top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
 
-                            # Enviar dados para o backend
-                            try:
-                                response = requests.post(BACKEND_URL, json=dados_moto)
-                                if response.status_code == 200:
-                                    print(f"✅ QR Code Detectado e Dados Enviados: {dados_moto}")
-                                    cv2.putText(frame, "MOTO ARMAZENADA!", (x1, y2 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                                else:
-                                    print(f"❌ Erro ao enviar dados: {response.status_code} - {response.text}")
-                                    cv2.putText(frame, "ERRO ARMAZENAMENTO!", (x1, y2 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                            except requests.exceptions.ConnectionError:
-                                print("❌ Erro de conexão com o backend. Verifique se o backend está rodando.")
-                                cv2.putText(frame, "BACKEND OFFLINE!", (x1, y2 + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-                        except json.JSONDecodeError:
-                            print(f"❌ QR Code lido não é um JSON válido: {qr_data}")
-                            texto_display = "QR Inválido"
-                        except Exception as e:
-                            print(f"❌ Erro ao processar QR Code: {e}")
-                            texto_display = "Erro QR"
+            except (json.JSONDecodeError, KeyError):
+                # Caso o QR Code não seja um JSON válido com a chave 'placa'
+                cv2.putText(frame, "QR INVALIDO", (barcode.rect.left, barcode.rect.top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                last_sent_placa = None # Reseta para permitir nova leitura
+        
+        # Se nenhum QR Code for detectado no frame, reseta o controle
+        if not qr_code_found_this_frame:
+            last_sent_placa = None
 
-                        x_qr, y_qr, w_qr, h_qr = barcode.rect
-                        cv2.putText(frame, texto_display, (x_qr + x1, y_qr + y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-        cv2.imshow("Mottu Vision - Leitor QR", frame)
+        cv2.imshow("Mottu Vision - Leitor de QR Code", frame)
 
         if cv2.waitKey(1) == ord('q'):
             break
@@ -96,5 +94,3 @@ def ler_qr_da_camera():
 
 if __name__ == '__main__':
     ler_qr_da_camera()
-
-
