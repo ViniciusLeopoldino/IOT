@@ -16,7 +16,6 @@ def find_one_qr_code():
     
     dados_moto = None
     while True:
-        # ... (código desta função permanece o mesmo da versão anterior)
         ret, frame = cap.read()
         if not ret: break
         frame = cv2.flip(frame, 1)
@@ -61,15 +60,13 @@ def find_location_code():
         barcodes = decode(frame)
         
         for barcode in barcodes:
-            # Para a localização, qualquer código de barras com texto serve.
             location_code = barcode.data.decode('utf-8')
             if location_code:
                 print(f"SUCCESS: Código de localização lido: {location_code}")
-                # Desenha o contorno para dar feedback
                 pontos = np.array([barcode.polygon], np.int32).reshape((-1, 1, 2))
-                cv2.polylines(frame, [pontos], True, (0, 255, 255), 3) # Ciano para localização
+                cv2.polylines(frame, [pontos], True, (0, 255, 255), 3) 
                 cv2.imshow(WINDOW_NAME, frame)
-                cv2.waitKey(500) # Mostra o contorno por meio segundo
+                cv2.waitKey(500) 
                 break
 
         cv2.imshow(WINDOW_NAME, frame)
