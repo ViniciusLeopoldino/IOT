@@ -3,7 +3,7 @@ import time
 import os
 import pandas as pd
 import requests
-from vision import find_one_qr_code, find_location_code # Importamos a nova função
+from vision import find_one_qr_code, find_location_code 
 from backend import app
 
 BACKEND_URL = "http://127.0.0.1:5000/armazenar_moto"
@@ -17,7 +17,6 @@ def start_checkin_process(log_file):
     flask_thread.start()
     time.sleep(2)
 
-    # --- ETAPA 1: LER A MOTO ---
     moto_data = find_one_qr_code()
 
     if not moto_data:
@@ -32,14 +31,13 @@ def start_checkin_process(log_file):
     confirm = input("Os dados estão corretos? Deseja continuar e escanear a localização? (s/n): ").strip().lower()
 
     if confirm == 's':
-        # --- ETAPA 2: LER A LOCALIZAÇÃO ---
+
         print("\nPróximo passo: escanear a localização.")
         location_code = find_location_code()
 
         if location_code:
             print(f"\nINFO: Enviando dados para armazenamento... Moto: {moto_data.get('placa')} -> Local: {location_code}")
             
-            # --- ETAPA 3: ENVIAR DADOS COMBINADOS ---
             payload = {'moto_data': moto_data, 'log_file': log_file, 'localizacao': location_code}
             
             try:
@@ -55,7 +53,6 @@ def start_checkin_process(log_file):
     else:
         print("INFO: Armazenamento cancelado pelo usuário.")
 
-# ... (o resto do arquivo 'main.py' e a função 'view_logs' permanecem os mesmos) ...
 def view_logs():
     log_file = input("Qual arquivo de log você deseja visualizar? (ex: patio_A.csv): ").strip()
     if os.path.exists(log_file):
