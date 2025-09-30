@@ -5,6 +5,8 @@
 ![Framework](https://img.shields.io/badge/Framework-Flask-black.svg)
 ![Computer Vision](https://img.shields.io/badge/Vision-OpenCV-orange.svg)
 
+## Apresentação do projeto no YouTube: https://youtu.be/cK8kvvuosXA
+
 ## 1. Descrição do Projeto
 O **Mottu Vision** é um protótipo funcional que utiliza Visão Computacional para otimizar e automatizar o processo de registro de motocicletas em pátios de armazenamento. A aplicação é controlada por um menu interativo que guia o operador através de um processo de **check-in em duas etapas**: primeiro, escaneando o QR Code da motocicleta e, em seguida, o código de barras da sua localização no pátio.
 
